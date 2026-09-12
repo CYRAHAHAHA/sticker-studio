@@ -762,9 +762,11 @@ function renderPreviewLabel(row, layout, index, profile) {
   const column = index % profile.cols;
   const rowIndex = Math.floor(index / profile.cols);
   const edgeClass = (column === profile.cols - 1 ? ' last-col' : '') + (rowIndex === profile.rows - 1 ? ' last-row' : '');
+  const previewScale = layout.kind === 'triptych' ? 0.42 : 0.34;
+  const previewMin = layout.kind === 'triptych' ? 4 : 6;
   const text = values.map(({ slot, value, style }) => {
     const positionClass = layout.kind === 'triptych' ? ' triptych-' + (slot.position || style.align) : '';
-    return '<span class="preview-text align-' + style.align + positionClass + '" style="font-size:' + Math.max(6, style.fontSize * 0.34) + 'px;font-weight:' + (style.weight === 'bold' ? 750 : 450) + ';font-style:' + (style.italic ? 'italic' : 'normal') + '">' + escapeHtml(value || ' ') + '</span>';
+    return '<span class="preview-text align-' + style.align + positionClass + '" style="font-size:' + Math.max(previewMin, style.fontSize * previewScale) + 'px;font-weight:' + (style.weight === 'bold' ? 750 : 450) + ';font-style:' + (style.italic ? 'italic' : 'normal') + '">' + escapeHtml(value || ' ') + '</span>';
   }).join('');
   return '<div class="preview-label ' + (isEmpty ? 'empty ' : '') + layout.kind + edgeClass + '"><div class="label-content">' + text + '</div>' + (index === 0 && !isEmpty ? '<span class="preview-focus">1</span>' : '') + '</div>';
 }
@@ -775,7 +777,8 @@ function renderSingleLabel(row = state.rows[0] || {}) {
     const style = state.styles[slot.key] || slot;
     const value = getSlotValue(row, slot);
     const positionClass = layout.kind === 'triptych' ? ' triptych-' + (slot.position || style.align) : '';
-    return '<span class="preview-text align-' + style.align + positionClass + '" style="font-size:' + Math.max(12, style.fontSize * 0.82) + 'px;font-weight:' + (style.weight === 'bold' ? 750 : 450) + ';font-style:' + (style.italic ? 'italic' : 'normal') + '">' + escapeHtml(value || state.customLabels[slot.key] || slot.label) + '</span>';
+    const previewMin = layout.kind === 'triptych' ? 9 : 12;
+    return '<span class="preview-text align-' + style.align + positionClass + '" style="font-size:' + Math.max(previewMin, style.fontSize * 0.82) + 'px;font-weight:' + (style.weight === 'bold' ? 750 : 450) + ';font-style:' + (style.italic ? 'italic' : 'normal') + '">' + escapeHtml(value || state.customLabels[slot.key] || slot.label) + '</span>';
   }).join('');
   return '<div class="single-label-wrap"><p class="eyebrow">ONE LABEL</p><div class="single-label ' + layout.kind + '"><div class="label-content">' + text + '</div></div><p class="preview-hint">This is the first participant as it will appear on every label.</p></div>';
 }
