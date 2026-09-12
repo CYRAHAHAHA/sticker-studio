@@ -178,12 +178,12 @@ const layouts = [
   {
     id: 'triptych',
     name: 'Top-left / centre / top-right',
-    detail: 'Three short fields · balanced across the top',
+    detail: 'Three fields · corners + large centre',
     kind: 'triptych',
     slots: [
-      { key: 'name', label: 'Left field', defaultColumn: 'Name', fontSize: 8, weight: 'bold', italic: false, align: 'left' },
-      { key: 'organisation', label: 'Centre field', defaultColumn: 'Organisation', fontSize: 8, weight: 'normal', italic: false, align: 'center' },
-      { key: 'code', label: 'Right field', defaultColumn: 'Code', fontSize: 8, weight: 'bold', italic: false, align: 'right' },
+      { key: 'name', label: 'Top-left field', defaultColumn: 'Name', fontSize: 8, weight: 'bold', italic: false, align: 'left', position: 'top-left' },
+      { key: 'organisation', label: 'Centre field', defaultColumn: 'Organisation', fontSize: 18, weight: 'bold', italic: false, align: 'center', position: 'center' },
+      { key: 'code', label: 'Top-right field', defaultColumn: 'Code', fontSize: 8, weight: 'bold', italic: false, align: 'right', position: 'top-right' },
     ],
   },
   {
@@ -757,12 +757,15 @@ function renderPreview(options = {}) {
 }
 
 function renderPreviewLabel(row, layout, index, profile) {
-  const values = layout.slots.map((slot) => ({ value: getSlotValue(row, slot), style: state.styles[slot.key] || slot }));
+  const values = layout.slots.map((slot) => ({ slot, value: getSlotValue(row, slot), style: state.styles[slot.key] || slot }));
   const isEmpty = values.every(({ value }) => !value);
   const column = index % profile.cols;
   const rowIndex = Math.floor(index / profile.cols);
   const edgeClass = (column === profile.cols - 1 ? ' last-col' : '') + (rowIndex === profile.rows - 1 ? ' last-row' : '');
-  const text = values.map(({ value, style }) => '<span class="preview-text align-' + style.align + '" style="font-size:' + Math.max(6, style.fontSize * 0.34) + 'px;font-weight:' + (style.weight === 'bold' ? 750 : 450) + ';font-style:' + (style.italic ? 'italic' : 'normal') + '">' + escapeHtml(value || ' ') + '</span>').join('');
+  const text = values.map(({ slot, value, style }) => {
+    const positionClass = layout.kind === 'triptych' ? ' triptych-' + (slot.position || style.align) : '';
+    return '<span class="preview-text align-' + style.align + positionClass + '" style="font-size:' + Math.max(6, style.fontSize * 0.34) + 'px;font-weight:' + (style.weight === 'bold' ? 750 : 450) + ';font-style:' + (style.italic ? 'italic' : 'normal') + '">' + escapeHtml(value || ' ') + '</span>';
+  }).join('');
   return '<div class="preview-label ' + (isEmpty ? 'empty ' : '') + layout.kind + edgeClass + '"><div class="label-content">' + text + '</div>' + (index === 0 && !isEmpty ? '<span class="preview-focus">1</span>' : '') + '</div>';
 }
 
@@ -771,7 +774,8 @@ function renderSingleLabel(row = state.rows[0] || {}) {
   const text = layout.slots.map((slot) => {
     const style = state.styles[slot.key] || slot;
     const value = getSlotValue(row, slot);
-    return '<span class="preview-text align-' + style.align + '" style="font-size:' + Math.max(12, style.fontSize * 0.82) + 'px;font-weight:' + (style.weight === 'bold' ? 750 : 450) + ';font-style:' + (style.italic ? 'italic' : 'normal') + '">' + escapeHtml(value || state.customLabels[slot.key] || slot.label) + '</span>';
+    const positionClass = layout.kind === 'triptych' ? ' triptych-' + (slot.position || style.align) : '';
+    return '<span class="preview-text align-' + style.align + positionClass + '" style="font-size:' + Math.max(12, style.fontSize * 0.82) + 'px;font-weight:' + (style.weight === 'bold' ? 750 : 450) + ';font-style:' + (style.italic ? 'italic' : 'normal') + '">' + escapeHtml(value || state.customLabels[slot.key] || slot.label) + '</span>';
   }).join('');
   return '<div class="single-label-wrap"><p class="eyebrow">ONE LABEL</p><div class="single-label ' + layout.kind + '"><div class="label-content">' + text + '</div></div><p class="preview-hint">This is the first participant as it will appear on every label.</p></div>';
 }
@@ -822,12 +826,12 @@ function renderStockStep() {
 }
 
 function renderLayoutStep() {
-  return '<main class="wizard-page"><div class="wizard-content step-layout"><section class="step-control">' + renderStepHeading('layout') + '<div class="control-card layout-picker"><div class="control-card-heading"><strong>Ready-made patterns</strong><span>Choose one</span></div><div class="layout-grid">' + renderLayoutCards() + '</div></div>' + renderDesignTuning() + '</section><section class="step-preview design-preview"><div class="preview-heading"><div><p class="eyebrow">DESIGN PREVIEW</p><h2>Your label hierarchy</h2></div><span class="preview-count">Sample</span></div>' + renderSingleLabel(state.rows[0] || {}) + '<div class="preview-note"><strong>' + escapeHtml(currentLayout().name) + '</strong><span>' + escapeHtml(currentLayout().detail) + '</span></div></section></div>' + renderFooter('layout', 'Use this design') + '</main>';
+  return '<main class="wizard-page"><div class="wizard-content step-layout"><section class="step-control">' + renderStepHeading('layout') + '<p class="preview-disclaimer">The sample content is only a preview. You’ll choose the real spreadsheet columns on Step 4.</p><div class="control-card layout-picker"><div class="control-card-heading"><strong>Ready-made patterns</strong><span>Choose one</span></div><div class="layout-grid">' + renderLayoutCards() + '</div></div>' + renderDesignTuning() + '</section><section class="step-preview design-preview"><div class="preview-heading"><div><p class="eyebrow">DESIGN PREVIEW</p><h2>Your label hierarchy</h2></div><span class="preview-count">Sample</span></div>' + renderSingleLabel(state.rows[0] || {}) + '<div class="preview-note"><strong>' + escapeHtml(currentLayout().name) + '</strong><span>' + escapeHtml(currentLayout().detail) + '</span></div></section></div>' + renderFooter('layout', 'Use this design') + '</main>';
 }
 
 function renderDataStep() {
   const draft = parsePastedData(state.rawInput);
-  return '<main class="wizard-page"><div class="wizard-content step-layout"><section class="step-control">' + renderStepHeading('data') + '<div class="control-card data-card"><label class="field-label" for="data-input">Spreadsheet rows</label><textarea id="data-input" class="data-input" spellcheck="false" aria-label="Paste participant spreadsheet data">' + escapeHtml(state.rawInput) + '</textarea><div class="data-actions"><button class="text-button" data-action="load-sample">↺ Load sample data</button><span>Tab-separated works best</span></div></div><div class="privacy-inline"><span>Local only</span><p>Rows are held in this browser tab and used to create the PDF on this device.</p></div></section><section class="step-preview data-preview"><div class="preview-heading"><div><p class="eyebrow">DATA CHECK</p><h2>What we found</h2></div><span class="preview-count">' + formatCount(draft.rows.length, 'row') + '</span></div>' + renderDataTable(draft) + '</section></div>' + renderFooter('data', 'Use these rows', draft.rows.length === 0) + '</main>';
+  return '<main class="wizard-page"><div class="wizard-content step-layout"><section class="step-control">' + renderStepHeading('data') + '<p class="preview-disclaimer">The sample content is only a preview. You’ll choose the real spreadsheet columns on Step 4.</p><div class="control-card data-card"><label class="field-label" for="data-input">Spreadsheet rows</label><textarea id="data-input" class="data-input" spellcheck="false" aria-label="Paste participant spreadsheet data">' + escapeHtml(state.rawInput) + '</textarea><div class="data-actions"><button class="text-button" data-action="load-sample">↺ Load sample data</button><span>Tab-separated works best</span></div></div><div class="privacy-inline"><span>Local only</span><p>Rows are held in this browser tab and used to create the PDF on this device.</p></div></section><section class="step-preview data-preview"><div class="preview-heading"><div><p class="eyebrow">DATA CHECK</p><h2>What we found</h2></div><span class="preview-count">' + formatCount(draft.rows.length, 'row') + '</span></div>' + renderDataTable(draft) + '</section></div>' + renderFooter('data', 'Use these rows', draft.rows.length === 0) + '</main>';
 }
 
 function renderMappingStep() {
@@ -1038,7 +1042,6 @@ function drawTriptych(page, record, layout, profile, fonts, topMm, leftMm) {
   const labelW = profile.labelW * MM_TO_PT;
   const labelH = profile.labelH * MM_TO_PT;
   const padding = Math.min(12, labelW * 0.06);
-  const baseline = page.getHeight() - (topMm + 8) * MM_TO_PT;
   layout.slots.forEach((slot) => {
     const style = state.styles[slot.key] ?? slot;
     const text = getSlotValue(record, slot);
@@ -1046,8 +1049,12 @@ function drawTriptych(page, record, layout, profile, fonts, topMm, leftMm) {
     const size = fitFontSize(text, font, style.fontSize, labelW - padding * 2);
     const width = font.widthOfTextAtSize(text, size);
     const align = style.align || slot.align;
+    const position = slot.position || (align === 'center' ? 'center' : align === 'left' ? 'top-left' : 'top-right');
     const x = align === 'left' ? leftMm * MM_TO_PT + padding : align === 'right' ? leftMm * MM_TO_PT + labelW - padding - width : leftMm * MM_TO_PT + (labelW - width) / 2;
-    if (text) page.drawText(text, { x, y: baseline, size, font, color: rgb(0.08, 0.12, 0.2) });
+    const y = position === 'center'
+      ? page.getHeight() - (topMm + profile.labelH / 2) * MM_TO_PT - font.heightAtSize(size) * 0.35
+      : page.getHeight() - (topMm + 7) * MM_TO_PT;
+    if (text) page.drawText(text, { x, y, size, font, color: rgb(0.08, 0.12, 0.2) });
   });
 }
 
