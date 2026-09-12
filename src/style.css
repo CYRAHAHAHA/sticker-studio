@@ -283,6 +283,9 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -0.025em; }
 .format-button span { font-size: 12px; }
 .format-button:hover, .format-button.pressed { border-color: var(--teal); background: color-mix(in srgb, var(--teal) 15%, var(--surface-strong)); color: var(--teal-deep); }
 .font-readout { min-width: 45px; color: var(--muted); font-family: "Cascadia Mono", monospace; font-size: 11px; text-align: center; }
+.format-card .slot-tabs { padding-top: 2px; }
+.format-card .field-label { margin-top: 17px; }
+.format-help { margin: 15px 0 0; color: var(--muted); font-size: 14px; line-height: 1.4; }
 
 .design-preview, .mapping-preview { padding-bottom: 20px; }
 .single-label-wrap { padding: clamp(30px, 8vw, 92px) 28px 30px; text-align: center; }

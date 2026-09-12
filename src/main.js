@@ -119,17 +119,42 @@ const profiles = [
   },
 ];
 
+const samplePeople = [
+  ['Alicia Tan', 'Northstar Events', 'Volunteer'],
+  ['Chua Wei Ming', 'Northstar Events', 'Registration'],
+  ['Siti Nur Aisyah', 'Civic Arts Network', 'Speaker'],
+  ['Marcus Lim', 'Northstar Events', 'Floor Lead'],
+  ['Maya O’Connell', 'Open House SG', 'Partner'],
+  ['Priya Nair', 'Civic Arts Network', 'Programme Lead'],
+  ['Haziq Rahman', 'Open House SG', 'Crew'],
+  ['Thirunavukkarasu Venkatesan', 'Singapore Youth Arts Collective', 'Programme Lead'],
+  ['Nurul Iman', 'Northstar Events', 'Volunteer'],
+  ['Ethan Koh', 'Civic Arts Network', 'Usher'],
+  ['Farah Ahmad', 'Open House SG', 'Registration'],
+  ['Daniel Wong', 'Northstar Events', 'Stage Manager'],
+  ['Grace Lee', 'Civic Arts Network', 'Speaker'],
+  ['Jun Wei Tan', 'Open House SG', 'Crew'],
+  ['Kavitha Raj', 'Northstar Events', 'Programme Lead'],
+  ['Lucas Pereira', 'Civic Arts Network', 'Volunteer'],
+  ['Mei Lin Goh', 'Open House SG', 'Partner'],
+  ['Noah Lim', 'Northstar Events', 'Usher'],
+  ['Olivia Chen', 'Civic Arts Network', 'Registration'],
+  ['Rafiq Ismail', 'Open House SG', 'Floor Lead'],
+  ['Sarah Teo', 'Northstar Events', 'Speaker'],
+  ['Theodore Ng', 'Civic Arts Network', 'Crew'],
+  ['Uma Krishnan', 'Open House SG', 'Volunteer'],
+  ['Vanessa Ho', 'Northstar Events', 'Partner'],
+  ['Wei Jie Ong', 'Civic Arts Network', 'Stage Manager'],
+  ['Xinyi Zhang', 'Open House SG', 'Programme Lead'],
+  ['Yusuf Abdullah', 'Northstar Events', 'Registration'],
+  ['Zoe Tan', 'Civic Arts Network', 'Usher'],
+  ['Aaron Lim', 'Open House SG', 'Speaker'],
+  ['Beatrice Low', 'Northstar Events', 'Volunteer'],
+];
+
 const sampleTSV = [
   ['Name', 'Organisation', 'Role', 'Code'],
-  ['Alicia Tan', 'Northstar Events', 'Volunteer', 'A-018'],
-  ['Chua Wei Ming', 'Northstar Events', 'Registration', 'A-019'],
-  ['Siti Nur Aisyah', 'Civic Arts Network', 'Speaker', 'A-020'],
-  ['Marcus Lim', 'Northstar Events', 'Floor Lead', 'A-021'],
-  ['Maya O’Connell', 'Open House SG', 'Partner', 'A-022'],
-  ['Priya Nair', 'Civic Arts Network', 'Programme Lead', 'A-023'],
-  ['Haziq Rahman', 'Open House SG', 'Crew', 'A-024'],
-  ['Thirunavukkarasu Venkatesan', 'Singapore Youth Arts Collective', 'Programme Lead', 'A-025'],
-  ['Nurul Iman', 'Northstar Events', 'Volunteer', 'A-026'],
+  ...samplePeople.map(([name, organisation, role], index) => [name, organisation, role, 'A-' + String(index + 18).padStart(3, '0')]),
 ].map((row) => row.join('\t')).join('\n');
 
 const layouts = [
@@ -707,13 +732,14 @@ function bindEvents() {
 }
 
 const wizardView = (() => {
-const wizardSteps = ['stock', 'layout', 'data', 'mapping', 'review'];
+const wizardSteps = ['stock', 'layout', 'data', 'mapping', 'format', 'review'];
 const stepMeta = {
   stock: { number: '01', label: 'Sheet', title: 'Choose your sticker sheet', description: 'Select the product code printed on the packet. We already know the layout details.' },
   layout: { number: '02', label: 'Design', title: 'Choose how the label reads', description: 'Pick a ready-made hierarchy, then make small optional adjustments if you need them.' },
   data: { number: '03', label: 'Data', title: 'Paste your participant list', description: 'Copy the header row and participant rows from Excel or Sheets.' },
   mapping: { number: '04', label: 'Match', title: 'Match your columns', description: 'Tell each label field which spreadsheet column should fill it.' },
-  review: { number: '05', label: 'Export', title: 'Check your sheet', description: 'Review the first A4 page, resolve any warnings, and download the print-ready PDF.' },
+  format: { number: '05', label: 'Style', title: 'Set your text style', description: 'Choose a field, then adjust its size and emphasis across every label.' },
+  review: { number: '06', label: 'Export', title: 'Check your sheet', description: 'Review the first A4 page, resolve any warnings, and download the print-ready PDF.' },
 };
 
 function renderProfileOptions() {
@@ -816,7 +842,7 @@ function renderChecks() {
 
 function renderStepHeading(step) {
   const meta = stepMeta[step];
-  return '<div class="step-heading"><p class="eyebrow">STEP ' + meta.number + ' OF 05 · ' + meta.label.toUpperCase() + '</p><h1>' + meta.title + '</h1><p>' + meta.description + '</p></div>';
+  return '<div class="step-heading"><p class="eyebrow">STEP ' + meta.number + ' OF ' + String(wizardSteps.length).padStart(2, '0') + ' · ' + meta.label.toUpperCase() + '</p><h1>' + meta.title + '</h1><p>' + meta.description + '</p></div>';
 }
 
 function renderFooter(step, primaryLabel, disabled = false) {
@@ -832,7 +858,7 @@ function renderStockStep() {
 }
 
 function renderLayoutStep() {
-  return '<main class="wizard-page"><div class="wizard-content step-layout"><section class="step-control">' + renderStepHeading('layout') + '<p class="preview-disclaimer">The sample content is only a preview. You’ll choose the real spreadsheet columns on Step 4.</p><div class="control-card layout-picker"><div class="control-card-heading"><strong>Ready-made patterns</strong><span>Choose one</span></div><div class="layout-grid">' + renderLayoutCards() + '</div></div>' + renderDesignTuning() + '</section><section class="step-preview design-preview"><div class="preview-heading"><div><p class="eyebrow">DESIGN PREVIEW</p><h2>Your label hierarchy</h2></div><span class="preview-count">Sample</span></div>' + renderSingleLabel(state.rows[0] || {}) + '<div class="preview-note"><strong>' + escapeHtml(currentLayout().name) + '</strong><span>' + escapeHtml(currentLayout().detail) + '</span></div></section></div>' + renderFooter('layout', 'Use this design') + '</main>';
+  return '<main class="wizard-page"><div class="wizard-content step-layout"><section class="step-control">' + renderStepHeading('layout') + '<p class="preview-disclaimer">The sample content is only a preview. You’ll choose the real spreadsheet columns on Step 4.</p><div class="control-card layout-picker"><div class="control-card-heading"><strong>Ready-made patterns</strong><span>Choose one</span></div><div class="layout-grid">' + renderLayoutCards() + '</div></div></section><section class="step-preview design-preview"><div class="preview-heading"><div><p class="eyebrow">DESIGN PREVIEW</p><h2>Your label hierarchy</h2></div><span class="preview-count">Sample</span></div>' + renderSingleLabel(state.rows[0] || {}) + '<div class="preview-note"><strong>' + escapeHtml(currentLayout().name) + '</strong><span>' + escapeHtml(currentLayout().detail) + '</span></div></section></div>' + renderFooter('layout', 'Use this design') + '</main>';
 }
 
 function renderDataStep() {
@@ -842,13 +868,24 @@ function renderDataStep() {
 
 function renderMappingStep() {
   const gaps = getMappingGaps();
-  return '<main class="wizard-page"><div class="wizard-content step-layout"><section class="step-control">' + renderStepHeading('mapping') + '<div class="control-card mapping-card"><div class="control-card-heading"><strong>Label fields</strong><span>' + (gaps.length ? gaps.length + ' to match' : 'All matched') + '</span></div>' + renderMappingList() + '</div><div class="mapping-tip"><strong>Tip</strong><span>We matched familiar headers automatically. Change any source that looks wrong.</span></div></section><section class="step-preview mapping-preview"><div class="preview-heading"><div><p class="eyebrow">LIVE LABEL</p><h2>First participant</h2></div><span class="preview-count">' + (state.rows[0] ? 'Row 1' : 'No row') + '</span></div>' + renderSingleLabel(state.rows[0] || {}) + '<div class="preview-note"><strong>Every label uses this same structure</strong><span>Only the participant values change.</span></div></section></div>' + renderFooter('mapping', 'Review my sheet', gaps.length > 0 || state.rows.length === 0) + '</main>';
+  return '<main class="wizard-page"><div class="wizard-content step-layout"><section class="step-control">' + renderStepHeading('mapping') + '<div class="control-card mapping-card"><div class="control-card-heading"><strong>Label fields</strong><span>' + (gaps.length ? gaps.length + ' to match' : 'All matched') + '</span></div>' + renderMappingList() + '</div><div class="mapping-tip"><strong>Tip</strong><span>We matched familiar headers automatically. Change any source that looks wrong.</span></div></section><section class="step-preview mapping-preview"><div class="preview-heading"><div><p class="eyebrow">LIVE LABEL</p><h2>First participant</h2></div><span class="preview-count">' + (state.rows[0] ? 'Row 1' : 'No row') + '</span></div>' + renderSingleLabel(state.rows[0] || {}) + '<div class="preview-note"><strong>Every label uses this same structure</strong><span>Only the participant values change.</span></div></section></div>' + renderFooter('mapping', 'Choose text style', gaps.length > 0 || state.rows.length === 0) + '</main>';
+}
+
+function renderFormattingStep() {
+  const layout = currentLayout();
+  const slot = layout.slots[state.activeSlot] || layout.slots[0];
+  const style = state.styles[slot.key] || slot;
+  const tabs = layout.slots.map((item, index) => '<button class="' + (index === state.activeSlot ? 'active' : '') + '" data-active-slot="' + index + '">' + escapeHtml(state.customLabels[item.key] || item.label) + '</button>').join('');
+  const customLabel = state.customLabels[slot.key] || slot.label;
+  return '<main class="wizard-page"><div class="wizard-content step-layout"><section class="step-control">' + renderStepHeading('format') + '<div class="control-card format-card"><div class="control-card-heading"><strong>Choose a field</strong><span>Style one at a time</span></div><div class="slot-tabs">' + tabs + '</div><label class="field-label">Printed field name<input class="slot-label-input" data-slot-label="' + slot.key + '" value="' + escapeHtml(customLabel) + '" aria-label="Printed field name" /></label><div class="format-toolbar" aria-label="Text formatting"><span class="toolbar-caption">TYPE STYLE <span>· ' + escapeHtml(customLabel) + '</span></span><div class="toolbar-actions"><button class="format-button ' + (style.weight === 'bold' ? 'pressed' : '') + '" data-format="bold"' + checked(style.weight === 'bold') + ' title="Bold">B</button><button class="format-button italic ' + (style.italic ? 'pressed' : '') + '" data-format="italic"' + checked(style.italic) + ' title="Italic">I</button><button class="format-button" data-format="decrease" title="Decrease font size">A<span>−</span></button><span class="font-readout">' + style.fontSize + ' pt</span><button class="format-button" data-format="increase" title="Increase font size">A<span>+</span></button></div></div><p class="format-help">These controls apply to the selected field on every label.</p></div></section><section class="step-preview design-preview"><div class="preview-heading"><div><p class="eyebrow">TEXT PREVIEW</p><h2>Your styled label</h2></div><span class="preview-count">Sample</span></div>' + renderSingleLabel(state.rows[0] || {}) + '<div class="preview-note"><strong>' + escapeHtml(currentLayout().name) + '</strong><span>Style changes are reflected in the PDF.</span></div></section></div>' + renderFooter('format', 'Review my sheet') + '</main>';
 }
 
 function renderReviewStep() {
   const gaps = getMappingGaps();
   const blocked = gaps.length > 0 || state.rows.length === 0 || state.busy;
-  return '<main class="wizard-page"><div class="wizard-content step-layout review-layout">' + renderPreview({ title: 'First page · ' + currentProfile().name, eyebrow: 'FINAL A4 PREVIEW', note: currentProfile().cols * currentProfile().rows + ' printable positions', rows: state.rows }) + '<section class="step-control review-control">' + renderStepHeading('review') + renderChecks() + '<div class="print-settings"><span>Print setting</span><strong>100% · Actual Size</strong></div>' + (state.lastDownload ? '<div class="download-success"><span>✓</span><div><strong>PDF downloaded</strong><span>Before using sticker stock, test one page on plain A4 paper.</span></div></div>' : '<p class="review-note">Check the first page against a plain sheet before loading sticker stock.</p>') + '</section></div>' + renderFooter('review', state.lastDownload ? 'Download again' : 'Download A4 PDF', blocked) + '</main>';
+  const pages = Math.max(1, Math.ceil(state.rows.length / (currentProfile().cols * currentProfile().rows)));
+  const perPage = currentProfile().cols * currentProfile().rows;
+  return '<main class="wizard-page"><div class="wizard-content step-layout review-layout">' + renderPreview({ title: 'Page 1 of ' + pages + ' · ' + currentProfile().name, eyebrow: 'FINAL A4 PREVIEW', note: 'Page 1 of ' + pages + ' · ' + perPage + ' labels per page', rows: state.rows }) + '<section class="step-control review-control">' + renderStepHeading('review') + renderChecks() + '<div class="print-settings"><span>Print setting</span><strong>100% · Actual Size</strong></div>' + (state.lastDownload ? '<div class="download-success"><span>✓</span><div><strong>PDF downloaded</strong><span>Before using sticker stock, test one page on plain A4 paper.</span></div></div>' : '<p class="review-note">Page 1 is shown above. The PDF will include all ' + pages + ' ' + (pages === 1 ? 'page' : 'pages') + '. Test it on plain paper before loading sticker stock.</p>') + '</section></div>' + renderFooter('review', state.lastDownload ? 'Download again' : 'Download A4 PDF', blocked) + '</main>';
 }
 
 function renderWizard(step) {
@@ -857,6 +894,7 @@ function renderWizard(step) {
   if (step === 'layout') return renderLayoutStep();
   if (step === 'data') return renderDataStep();
   if (step === 'mapping') return renderMappingStep();
+  if (step === 'format') return renderFormattingStep();
   return renderReviewStep();
 }
 
