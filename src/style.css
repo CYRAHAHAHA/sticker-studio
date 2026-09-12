@@ -375,19 +375,20 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -0.025em; }
 .footer-primary:disabled { border-color: var(--line-strong); background: var(--line-strong); color: var(--muted); box-shadow: none; }
 .footer-primary span { font-size: 20px; line-height: 1; }
 
-.support-content { width: min(980px, calc(100% - 72px)); margin: auto; padding: 30px 0 42px; }
-.support-back { margin-bottom: 32px; }
-.support-heading { max-width: 730px; margin-bottom: 28px; }
-.support-heading h1 { margin-bottom: 14px; }
+.support-content { display: flex; flex-direction: column; justify-content: center; width: min(980px, calc(100% - 72px)); margin: auto; padding: 30px 0; }
+.support-back { align-self: flex-start; margin-bottom: 25px; }
+.support-heading { max-width: 730px; margin-bottom: 24px; }
+.support-heading h1 { margin-bottom: 12px; }
 .support-heading > p:last-child { color: var(--ink-soft); font-size: 17px; line-height: 1.5; }
-.guide-list, .privacy-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.guide-list article, .privacy-list article { display: flex; gap: 15px; min-height: 160px; padding: 21px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); box-shadow: var(--shadow); }
+.guide-list, .privacy-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.privacy-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.guide-list article, .privacy-list article { display: flex; gap: 14px; min-height: 148px; padding: 19px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); box-shadow: var(--shadow); }
 .guide-list article > span, .privacy-list article > span { display: grid; place-items: center; flex: 0 0 auto; width: 30px; height: 24px; border-radius: 6px; background: var(--surface-soft); color: var(--teal-deep); font-family: "Cascadia Mono", monospace; font-size: 11px; }
 .guide-list h2, .privacy-list h2 { margin: 1px 0 8px; font-size: 17px; }
 .guide-list p, .privacy-list p { margin: 0; color: var(--ink-soft); font-size: 14px; line-height: 1.5; }
 .guide-list .warning-card { border-color: color-mix(in srgb, var(--yellow) 42%, var(--line)); background: color-mix(in srgb, var(--yellow) 7%, var(--surface)); }
 .guide-list .warning-card > span { background: color-mix(in srgb, var(--yellow) 17%, transparent); color: var(--yellow); }
-.support-footer { display: flex; align-items: center; justify-content: space-between; width: min(980px, calc(100% - 72px)); min-height: 76px; margin: auto; border-top: 1px solid var(--line); }
+.support-footer { display: flex; align-items: center; justify-content: space-between; width: min(980px, calc(100% - 72px)); min-height: 68px; margin: auto; border-top: 1px solid var(--line); }
 
 @media (max-width: 1050px) {
   .step-layout { grid-template-columns: minmax(280px, 0.92fr) minmax(390px, 1.08fr); gap: 22px; width: min(100% - 40px, 920px); }
@@ -415,7 +416,7 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -0.025em; }
   .footer-back, .footer-back-placeholder { min-width: 62px; }
   .footer-back-placeholder { display: block; }
   .support-content, .support-footer { width: calc(100% - 28px); }
-  .support-content { padding-top: 24px; }
+  .support-content { justify-content: flex-start; padding-top: 24px; }
   .guide-list, .privacy-list { grid-template-columns: 1fr; }
 }
 
