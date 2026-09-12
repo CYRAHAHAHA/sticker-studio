@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Label Studio">
+  <rect width="192" height="192" rx="40" fill="#12243f"/>
+  <rect x="32" y="32" width="56" height="56" rx="11" fill="#ed8955"/>
+  <rect x="104" y="32" width="56" height="56" rx="11" fill="#f8c079"/>
+  <rect x="32" y="104" width="56" height="56" rx="11" fill="#8cd0c5"/>
+  <rect x="104" y="104" width="56" height="56" rx="11" fill="#fff"/>
+  <path d="M48 60h24M120 60h24M48 132h24M120 132h24" fill="none" stroke="#12243f" stroke-linecap="round" stroke-width="6" opacity=".6"/>
+</svg>
