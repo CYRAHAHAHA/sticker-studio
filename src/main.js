@@ -782,7 +782,7 @@ function renderPreview(options = {}) {
   const eyebrow = options.eyebrow || 'LIVE PREVIEW';
   const rows = options.rows || state.rows;
   const note = options.note || 'Printable label area';
-  return '<section class="step-preview"><div class="preview-heading"><div><p class="eyebrow">' + eyebrow + '</p><h2>' + escapeHtml(title) + '</h2></div><span class="preview-count">' + profile.cols + ' × ' + profile.rows + '</span></div><div class="paper-stage">' + renderA4Paper(rows) + '</div><div class="preview-footer"><span><i class="legend-swatch"></i>' + escapeHtml(note) + '</span><span>A4 · ' + escapeHtml(profile.detail.split(' · ')[0]) + '</span></div></section>';
+  return '<section class="step-preview a4-preview"><div class="preview-heading"><div><p class="eyebrow">' + eyebrow + '</p><h2>' + escapeHtml(title) + '</h2></div><span class="preview-count">' + profile.cols + ' × ' + profile.rows + '</span></div><div class="paper-stage">' + renderA4Paper(rows) + '</div><div class="preview-footer"><span><i class="legend-swatch"></i>' + escapeHtml(note) + '</span><span>A4 · ' + escapeHtml(profile.detail.split(' · ')[0]) + '</span></div></section>';
 }
 
 function renderPreviewLabel(row, layout, index, profile) {
