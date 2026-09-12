@@ -232,6 +232,7 @@ const state = {
   rows: parsePastedData(sampleTSV).rows,
   mappings: {},
   customLabels: {},
+  stylesByLayout: {},
   styles: {},
   busy: false,
   lastDownload: '',
@@ -254,6 +255,8 @@ function markDirty() {
 
 function ensureLayoutState() {
   const layout = currentLayout();
+  if (!state.stylesByLayout[layout.id]) state.stylesByLayout[layout.id] = {};
+  state.styles = state.stylesByLayout[layout.id];
   layout.slots.forEach((slot, index) => {
     if (!(slot.key in state.mappings)) state.mappings[slot.key] = state.headers.includes(slot.defaultColumn) ? slot.defaultColumn : state.headers[index] ?? state.headers[0] ?? '';
     if (!(slot.key in state.customLabels)) state.customLabels[slot.key] = slot.label;
