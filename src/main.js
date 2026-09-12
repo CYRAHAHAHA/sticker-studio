@@ -222,7 +222,8 @@ const layouts = [
 const app = document.querySelector('#app');
 
 const state = {
-  page: 'studio',
+  page: 'stock',
+  theme: 'dark',
   profileId: profiles[0].id,
   layoutId: layouts[0].id,
   activeSlot: 0,
@@ -235,6 +236,7 @@ const state = {
   busy: false,
   lastDownload: '',
   installPrompt: null,
+  warningOpen: false,
 };
 
 function currentProfile() {
@@ -247,6 +249,7 @@ function currentLayout() {
 
 function markDirty() {
   state.lastDownload = '';
+  state.warningOpen = false;
 }
 
 function ensureLayoutState() {
@@ -567,8 +570,7 @@ function renderPrivacy() {
 }
 
 function renderApp() {
-  app.innerHTML = `${renderHeader()}${state.page === 'studio' ? renderStudio() : state.page === 'guide' ? renderGuide() : renderPrivacy()}`;
-  bindEvents();
+  wizardView.renderApp();
 }
 
 function updateData(input) {
@@ -701,6 +703,300 @@ function bindEvents() {
   });
 }
 
+const wizardView = (() => {
+const wizardSteps = ['stock', 'layout', 'data', 'mapping', 'review'];
+const stepMeta = {
+  stock: { number: '01', label: 'Sheet', title: 'Choose your sticker sheet', description: 'Select the product code printed on the packet. We already know the layout details.' },
+  layout: { number: '02', label: 'Design', title: 'Choose how the label reads', description: 'Pick a ready-made hierarchy, then make small optional adjustments if you need them.' },
+  data: { number: '03', label: 'Data', title: 'Paste your participant list', description: 'Copy the header row and participant rows from Excel or Sheets.' },
+  mapping: { number: '04', label: 'Match', title: 'Match your columns', description: 'Tell each label field which spreadsheet column should fill it.' },
+  review: { number: '05', label: 'Export', title: 'Check your sheet', description: 'Review the first A4 page, resolve any warnings, and download the print-ready PDF.' },
+};
+
+function renderProfileOptions() {
+  return profiles.map((profile) => '<option value="' + profile.id + '"' + selected(profile.id, state.profileId) + '>' + profile.brand + ' · ' + profile.name.split(' · ')[1] + '</option>').join('');
+}
+
+function renderProfileSummary() {
+  const profile = currentProfile();
+  return '<div class="selection-summary"><div class="stock-icon"><span></span><span></span><span></span></div><div><strong>' + escapeHtml(profile.brand) + ' · ' + escapeHtml(profile.name.split(' · ')[0]) + '</strong><span>' + escapeHtml(profile.detail) + '</span></div><span class="summary-check">✓</span></div>';
+}
+
+function renderLayoutCards() {
+  return layouts.map((layout) => {
+    const active = layout.id === state.layoutId;
+    const miniLines = layout.slots.map((slot) => '<i class="mini-line align-' + slot.align + '" style="--mini-size:' + Math.max(0.45, slot.fontSize / 15) + '"></i>').join('');
+    return '<button class="layout-card ' + (active ? 'active' : '') + '" data-layout="' + layout.id + '" aria-pressed="' + active + '"><span class="layout-mini ' + layout.kind + '">' + miniLines + '</span><span class="layout-copy"><strong>' + escapeHtml(layout.name) + '</strong><small>' + escapeHtml(layout.detail) + '</small></span><span class="radio-dot"></span></button>';
+  }).join('');
+}
+
+function renderDesignTuning() {
+  const layout = currentLayout();
+  const slot = layout.slots[state.activeSlot] || layout.slots[0];
+  const style = state.styles[slot.key] || slot;
+  const tabs = layout.slots.map((item, index) => '<button class="' + (index === state.activeSlot ? 'active' : '') + '" data-active-slot="' + index + '">' + escapeHtml(state.customLabels[item.key] || item.label) + '</button>').join('');
+  return '<details class="optional-panel"><summary>Fine-tune this design <span>Optional</span></summary><div class="tuning-body"><div class="slot-tabs">' + tabs + '</div><label class="field-label">Field name<input class="slot-label-input" data-slot-label="' + slot.key + '" value="' + escapeHtml(state.customLabels[slot.key] || slot.label) + '" aria-label="Field name" /></label><div class="format-toolbar" aria-label="Text formatting"><span class="toolbar-caption">TYPE STYLE <span>· ' + escapeHtml(state.customLabels[slot.key] || slot.label) + '</span></span><div class="toolbar-actions"><button class="format-button ' + (style.weight === 'bold' ? 'pressed' : '') + '" data-format="bold"' + checked(style.weight === 'bold') + ' title="Bold">B</button><button class="format-button italic ' + (style.italic ? 'pressed' : '') + '" data-format="italic"' + checked(style.italic) + ' title="Italic">I</button><button class="format-button" data-format="decrease" title="Decrease font size">A<span>−</span></button><span class="font-readout">' + style.fontSize + ' pt</span><button class="format-button" data-format="increase" title="Increase font size">A<span>+</span></button></div></div></div></details>';
+}
+
+function renderA4Paper(rows = state.rows) {
+  const profile = currentProfile();
+  const layout = currentLayout();
+  const capacity = profile.cols * profile.rows;
+  const previewRows = rows.slice(0, capacity);
+  while (previewRows.length < capacity) previewRows.push({});
+  return '<div class="a4-paper" style="--cols:' + profile.cols + ';--rows:' + profile.rows + ';">' + previewRows.map((row, index) => renderPreviewLabel(row, layout, index, profile)).join('') + '</div>';
+}
+
+function renderPreview(options = {}) {
+  const profile = currentProfile();
+  const title = options.title || 'First page';
+  const eyebrow = options.eyebrow || 'LIVE PREVIEW';
+  const rows = options.rows || state.rows;
+  const note = options.note || 'Printable label area';
+  return '<section class="step-preview"><div class="preview-heading"><div><p class="eyebrow">' + eyebrow + '</p><h2>' + escapeHtml(title) + '</h2></div><span class="preview-count">' + profile.cols + ' × ' + profile.rows + '</span></div><div class="paper-stage">' + renderA4Paper(rows) + '</div><div class="preview-footer"><span><i class="legend-swatch"></i>' + escapeHtml(note) + '</span><span>A4 · ' + escapeHtml(profile.detail.split(' · ')[0]) + '</span></div></section>';
+}
+
+function renderPreviewLabel(row, layout, index, profile) {
+  const values = layout.slots.map((slot) => ({ value: getSlotValue(row, slot), style: state.styles[slot.key] || slot }));
+  const isEmpty = values.every(({ value }) => !value);
+  const column = index % profile.cols;
+  const rowIndex = Math.floor(index / profile.cols);
+  const edgeClass = (column === profile.cols - 1 ? ' last-col' : '') + (rowIndex === profile.rows - 1 ? ' last-row' : '');
+  const text = values.map(({ value, style }) => '<span class="preview-text align-' + style.align + '" style="font-size:' + Math.max(6, style.fontSize * 0.34) + 'px;font-weight:' + (style.weight === 'bold' ? 750 : 450) + ';font-style:' + (style.italic ? 'italic' : 'normal') + '">' + escapeHtml(value || ' ') + '</span>').join('');
+  return '<div class="preview-label ' + (isEmpty ? 'empty ' : '') + layout.kind + edgeClass + '"><div class="label-content">' + text + '</div>' + (index === 0 && !isEmpty ? '<span class="preview-focus">1</span>' : '') + '</div>';
+}
+
+function renderSingleLabel(row = state.rows[0] || {}) {
+  const layout = currentLayout();
+  const text = layout.slots.map((slot) => {
+    const style = state.styles[slot.key] || slot;
+    const value = getSlotValue(row, slot);
+    return '<span class="preview-text align-' + style.align + '" style="font-size:' + Math.max(12, style.fontSize * 0.82) + 'px;font-weight:' + (style.weight === 'bold' ? 750 : 450) + ';font-style:' + (style.italic ? 'italic' : 'normal') + '">' + escapeHtml(value || state.customLabels[slot.key] || slot.label) + '</span>';
+  }).join('');
+  return '<div class="single-label-wrap"><p class="eyebrow">ONE LABEL</p><div class="single-label ' + layout.kind + '"><div class="label-content">' + text + '</div></div><p class="preview-hint">This is the first participant as it will appear on every label.</p></div>';
+}
+
+function renderDataTable(parsed) {
+  if (!parsed.headers.length) return '<div class="empty-data"><strong>No rows detected yet</strong><span>Paste a header row followed by participant details.</span></div>';
+  const headers = parsed.headers.slice(0, 4);
+  const rows = parsed.rows.slice(0, 3);
+  const head = headers.map((header) => '<th>' + escapeHtml(header) + '</th>').join('');
+  const body = rows.map((row) => '<tr>' + headers.map((header) => '<td>' + escapeHtml(row[header] || '—') + '</td>').join('') + '</tr>').join('');
+  return '<div class="data-table-wrap"><div class="table-meta"><strong>' + formatCount(parsed.rows.length, 'row') + ' detected</strong><span>Showing first ' + Math.min(rows.length, 3) + '</span></div><table class="data-table"><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div>';
+}
+
+function renderMappingList() {
+  const layout = currentLayout();
+  return '<div class="mapping-list">' + layout.slots.map((slot, index) => '<div class="mapping-row"><div class="mapping-field"><span class="slot-number">0' + (index + 1) + '</span><strong>' + escapeHtml(state.customLabels[slot.key] || slot.label) + '</strong><small>Prints as ' + escapeHtml(state.customLabels[slot.key] || slot.label) + '</small></div><select class="column-select" data-mapping="' + slot.key + '" aria-label="Spreadsheet column for ' + escapeHtml(state.customLabels[slot.key] || slot.label) + '"><option value=""' + (!state.mappings[slot.key] ? ' selected' : '') + '>Choose a column</option>' + state.headers.map((header) => '<option value="' + escapeHtml(header) + '"' + selected(header, state.mappings[slot.key]) + '>' + escapeHtml(header) + '</option>').join('') + '</select></div>').join('') + '</div>';
+}
+
+function getMappingGaps() {
+  return currentLayout().slots.filter((slot) => !state.mappings[slot.key] || !state.headers.includes(state.mappings[slot.key]));
+}
+
+function renderChecks() {
+  const warnings = getWarnings();
+  const mappingGaps = getMappingGaps();
+  const profile = currentProfile();
+  const pages = Math.max(1, Math.ceil(state.rows.length / (profile.cols * profile.rows)));
+  const issueCount = warnings.length + mappingGaps.length;
+  const details = state.warningOpen ? '<div class="warning-detail-panel">' + warnings.slice(0, 8).map((warning) => '<div><strong>Row ' + (warning.rowIndex + 1) + ' · ' + escapeHtml(warning.slot) + '</strong><span>' + escapeHtml(warning.value) + '</span></div>').join('') + '</div>' : '';
+  return '<div class="checks-card"><div class="checks-head"><span class="eyebrow">PRE-FLIGHT</span><span class="check-count">' + (issueCount ? issueCount + ' item' + (issueCount === 1 ? '' : 's') + ' to review' : 'All clear') + '</span></div><div class="check-line ' + (state.rows.length > 0 ? 'good' : 'bad') + '"><span class="check-icon">' + (state.rows.length > 0 ? '✓' : '!') + '</span><span>' + (state.rows.length > 0 ? state.rows.length + ' participant rows ready' : 'No participant rows yet') + '</span></div>' + (mappingGaps.length ? '<div class="check-line bad"><span class="check-icon">!</span><span>' + mappingGaps.length + ' field' + (mappingGaps.length === 1 ? '' : 's') + ' still need a source column</span></div>' : '<div class="check-line good"><span class="check-icon">✓</span><span>Every label field has a source column</span></div>') + '<div class="check-line good"><span class="check-icon">✓</span><span>' + pages + ' ' + (pages === 1 ? 'A4 page' : 'A4 pages') + ' · ' + profile.cols * profile.rows + ' labels per page</span></div>' + (warnings.length ? '<div class="warning-list"><div class="check-line warning"><span class="check-icon">!</span><span>' + warnings.length + ' text field' + (warnings.length === 1 ? ' may' : 's may') + ' run long</span></div><button class="warning-detail" data-action="show-warnings">' + (state.warningOpen ? 'Hide long-text details' : 'Review long-text details') + ' ↗</button></div>' + details : '<div class="check-line good"><span class="check-icon">✓</span><span>Text fits the current label size</span></div>') + '</div>';
+}
+
+function renderStepHeading(step) {
+  const meta = stepMeta[step];
+  return '<div class="step-heading"><p class="eyebrow">STEP ' + meta.number + ' OF 05 · ' + meta.label.toUpperCase() + '</p><h1>' + meta.title + '</h1><p>' + meta.description + '</p></div>';
+}
+
+function renderFooter(step, primaryLabel, disabled = false) {
+  const index = wizardSteps.indexOf(step);
+  const previous = wizardSteps[index - 1];
+  const progress = wizardSteps.map((item, itemIndex) => '<span class="progress-dot ' + (itemIndex < index ? 'complete ' : '') + (item === step ? 'current' : '') + '" title="' + stepMeta[item].label + '"></span>').join('');
+  return '<footer class="wizard-footer"><div class="wizard-footer-inner">' + (previous ? '<button class="footer-back" data-page="' + previous + '">← Back</button>' : '<span class="footer-back-placeholder"></span>') + '<div class="footer-progress" aria-label="Step ' + (index + 1) + ' of ' + wizardSteps.length + '"><div>' + progress + '</div><span>Step ' + (index + 1) + ' of ' + wizardSteps.length + ' · ' + stepMeta[step].label + '</span></div><div class="footer-tools">' + (state.installPrompt ? '<button class="footer-link" data-action="install-app">Install app</button>' : '') + '<button class="footer-link" data-page="guide">Print guide</button><button class="footer-link" data-page="privacy">Privacy</button><button class="theme-button" data-action="toggle-theme" aria-label="Switch to ' + (state.theme === 'dark' ? 'light' : 'dark') + ' mode">' + (state.theme === 'dark' ? '☼ Light' : '☾ Dark') + '</button></div><button class="footer-primary" data-action="' + (step === 'review' ? 'download-pdf' : 'next-step') + '"' + (disabled ? ' disabled' : '') + '>' + (state.busy && step === 'review' ? 'Building PDF…' : primaryLabel) + '<span>→</span></button></div></footer>';
+}
+
+function renderStockStep() {
+  const profile = currentProfile();
+  return '<main class="wizard-page"><div class="wizard-content step-layout"><section class="step-control">' + renderStepHeading('stock') + '<div class="control-card"><label class="field-label" for="profile-select">Sticker product</label><select id="profile-select" class="profile-select">' + renderProfileOptions() + '</select>' + renderProfileSummary() + '</div><div class="trust-note"><span>⌁</span><div><strong>Sheet geometry is handled for you</strong><p>No margin, gap, or corner measurements needed.</p></div></div></section>' + renderPreview({ title: profile.brand + ' · ' + profile.name.split(' · ')[0], eyebrow: 'WHAT YOU WILL PRINT', note: 'Sheet alignment preview', rows: state.rows }) + '</div>' + renderFooter('stock', 'Use this sheet') + '</main>';
+}
+
+function renderLayoutStep() {
+  return '<main class="wizard-page"><div class="wizard-content step-layout"><section class="step-control">' + renderStepHeading('layout') + '<div class="control-card layout-picker"><div class="control-card-heading"><strong>Ready-made patterns</strong><span>Choose one</span></div><div class="layout-grid">' + renderLayoutCards() + '</div></div>' + renderDesignTuning() + '</section><section class="step-preview design-preview"><div class="preview-heading"><div><p class="eyebrow">DESIGN PREVIEW</p><h2>Your label hierarchy</h2></div><span class="preview-count">Sample</span></div>' + renderSingleLabel(state.rows[0] || {}) + '<div class="preview-note"><strong>' + escapeHtml(currentLayout().name) + '</strong><span>' + escapeHtml(currentLayout().detail) + '</span></div></section></div>' + renderFooter('layout', 'Use this design') + '</main>';
+}
+
+function renderDataStep() {
+  const draft = parsePastedData(state.rawInput);
+  return '<main class="wizard-page"><div class="wizard-content step-layout"><section class="step-control">' + renderStepHeading('data') + '<div class="control-card data-card"><label class="field-label" for="data-input">Spreadsheet rows</label><textarea id="data-input" class="data-input" spellcheck="false" aria-label="Paste participant spreadsheet data">' + escapeHtml(state.rawInput) + '</textarea><div class="data-actions"><button class="text-button" data-action="load-sample">↺ Load sample data</button><span>Tab-separated works best</span></div></div><div class="privacy-inline"><span>Local only</span><p>Rows are held in this browser tab and used to create the PDF on this device.</p></div></section><section class="step-preview data-preview"><div class="preview-heading"><div><p class="eyebrow">DATA CHECK</p><h2>What we found</h2></div><span class="preview-count">' + formatCount(draft.rows.length, 'row') + '</span></div>' + renderDataTable(draft) + '</section></div>' + renderFooter('data', 'Use these rows', draft.rows.length === 0) + '</main>';
+}
+
+function renderMappingStep() {
+  const gaps = getMappingGaps();
+  return '<main class="wizard-page"><div class="wizard-content step-layout"><section class="step-control">' + renderStepHeading('mapping') + '<div class="control-card mapping-card"><div class="control-card-heading"><strong>Label fields</strong><span>' + (gaps.length ? gaps.length + ' to match' : 'All matched') + '</span></div>' + renderMappingList() + '</div><div class="mapping-tip"><strong>Tip</strong><span>We matched familiar headers automatically. Change any source that looks wrong.</span></div></section><section class="step-preview mapping-preview"><div class="preview-heading"><div><p class="eyebrow">LIVE LABEL</p><h2>First participant</h2></div><span class="preview-count">' + (state.rows[0] ? 'Row 1' : 'No row') + '</span></div>' + renderSingleLabel(state.rows[0] || {}) + '<div class="preview-note"><strong>Every label uses this same structure</strong><span>Only the participant values change.</span></div></section></div>' + renderFooter('mapping', 'Review my sheet', gaps.length > 0 || state.rows.length === 0) + '</main>';
+}
+
+function renderReviewStep() {
+  const gaps = getMappingGaps();
+  const blocked = gaps.length > 0 || state.rows.length === 0 || state.busy;
+  return '<main class="wizard-page"><div class="wizard-content step-layout review-layout">' + renderPreview({ title: 'First page · ' + currentProfile().name, eyebrow: 'FINAL A4 PREVIEW', note: currentProfile().cols * currentProfile().rows + ' printable positions', rows: state.rows }) + '<section class="step-control review-control">' + renderStepHeading('review') + renderChecks() + '<div class="print-settings"><span>Print setting</span><strong>100% · Actual Size</strong></div>' + (state.lastDownload ? '<div class="download-success"><span>✓</span><div><strong>PDF downloaded</strong><span>Before using sticker stock, test one page on plain A4 paper.</span></div></div>' : '<p class="review-note">Check the first page against a plain sheet before loading sticker stock.</p>') + '</section></div>' + renderFooter('review', state.lastDownload ? 'Download again' : 'Download A4 PDF', blocked) + '</main>';
+}
+
+function renderWizard(step) {
+  ensureLayoutState();
+  if (step === 'stock') return renderStockStep();
+  if (step === 'layout') return renderLayoutStep();
+  if (step === 'data') return renderDataStep();
+  if (step === 'mapping') return renderMappingStep();
+  return renderReviewStep();
+}
+
+function renderGuide() {
+  return '<main class="support-page"><div class="support-content"><button class="support-back" data-page="review">← Back to sheet</button><div class="support-heading"><p class="eyebrow">PRINT GUIDE</p><h1>One quick test saves a sheet.</h1><p>Use ordinary A4 paper first. The test catches printer scaling before you spend a sticker sheet.</p></div><div class="guide-list"><article><span>01</span><div><h2>Print at Actual Size</h2><p>Choose A4 and 100% / Actual Size. Do not use Fit, Shrink, or Scale to Printable Area.</p></div></article><article><span>02</span><div><h2>Lay it over the stock</h2><p>Hold the plain-paper test behind the sticker sheet against a bright window. Text should sit inside each label.</p></div></article><article><span>03</span><div><h2>Then use sticker stock</h2><p>Feed one sheet at a time and use the manual or multipurpose tray when available.</p></div></article><article class="warning-card"><span>!</span><div><h2>If it is shifted</h2><p>Check that scaling is still 100%. A small consistent offset belongs in the printer driver or manufacturer settings.</p></div></article></div></div>' + renderSupportFooter() + '</main>';
+}
+
+function renderPrivacy() {
+  return '<main class="support-page"><div class="support-content"><button class="support-back" data-page="review">← Back to sheet</button><div class="support-heading"><p class="eyebrow">PRIVACY</p><h1>Your participant list stays with you.</h1><p>This tool is designed for small offices handling event information that should not become another cloud database.</p></div><div class="privacy-list"><article><span>⌁</span><div><h2>Local processing</h2><p>Pasted data stays in this browser tab. The PDF is assembled on this device and downloaded directly to you.</p></div></article><article><span>□</span><div><h2>No account or upload</h2><p>No sign-in, participant database, file upload, or shared workspace is needed.</p></div></article><article><span>↯</span><div><h2>Memory-only prototype</h2><p>Closing or refreshing this tab clears the working data.</p></div></article></div></div>' + renderSupportFooter() + '</main>';
+}
+
+function renderSupportFooter() {
+  return '<footer class="support-footer"><button class="footer-link" data-page="review">Back to export</button><button class="theme-button" data-action="toggle-theme" aria-label="Switch to ' + (state.theme === 'dark' ? 'light' : 'dark') + ' mode">' + (state.theme === 'dark' ? '☼ Light' : '☾ Dark') + '</button></footer>';
+}
+
+function renderApp() {
+  document.documentElement.dataset.theme = state.theme;
+  const view = wizardSteps.includes(state.page) ? renderWizard(state.page) : state.page === 'guide' ? renderGuide() : renderPrivacy();
+  app.innerHTML = view;
+  bindEvents();
+}
+
+function updateData(input) {
+  const parsed = parsePastedData(input);
+  markDirty();
+  state.rawInput = input;
+  state.headers = parsed.headers;
+  state.rows = parsed.rows;
+  Object.keys(state.mappings).forEach((key) => {
+    if (!state.headers.includes(state.mappings[key])) state.mappings[key] = '';
+  });
+  ensureLayoutState();
+}
+
+function selectPage(page) {
+  const nextPage = page === 'studio' ? 'stock' : page;
+  state.page = nextPage;
+  window.location.hash = nextPage;
+  renderApp();
+}
+
+async function downloadPdf() {
+  if (!state.rows.length || getMappingGaps().length || state.busy) return;
+  state.busy = true;
+  renderApp();
+  try {
+    const bytes = await buildPdf();
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'label-studio-' + currentProfile().id + '.pdf';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    state.lastDownload = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } finally {
+    state.busy = false;
+    renderApp();
+  }
+}
+
+function bindEvents() {
+  document.querySelectorAll('[data-page]').forEach((element) => {
+    element.addEventListener('click', (event) => {
+      event.preventDefault();
+      selectPage(element.dataset.page);
+    });
+  });
+  document.querySelector('[data-action="toggle-theme"]')?.addEventListener('click', () => {
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
+    renderApp();
+  });
+  document.querySelector('[data-action="install-app"]')?.addEventListener('click', async () => {
+    if (!state.installPrompt) return;
+    state.installPrompt.prompt();
+    await state.installPrompt.userChoice;
+    state.installPrompt = null;
+    renderApp();
+  });
+  document.querySelector('#profile-select')?.addEventListener('change', (event) => {
+    markDirty();
+    state.profileId = event.target.value;
+    renderApp();
+  });
+  document.querySelectorAll('[data-layout]').forEach((element) => {
+    element.addEventListener('click', () => {
+      markDirty();
+      state.layoutId = element.dataset.layout;
+      state.activeSlot = 0;
+      ensureLayoutState();
+      renderApp();
+    });
+  });
+  document.querySelectorAll('[data-active-slot]').forEach((element) => {
+    element.addEventListener('click', () => {
+      state.activeSlot = Number(element.dataset.activeSlot);
+      renderApp();
+    });
+  });
+  document.querySelectorAll('[data-slot-label]').forEach((element) => {
+    element.addEventListener('change', () => {
+      state.customLabels[element.dataset.slotLabel] = element.value.trim() || 'Field';
+      renderApp();
+    });
+  });
+  document.querySelectorAll('[data-mapping]').forEach((element) => {
+    element.addEventListener('change', () => {
+      markDirty();
+      state.mappings[element.dataset.mapping] = element.value;
+      renderApp();
+    });
+  });
+  document.querySelectorAll('[data-format]').forEach((element) => {
+    element.addEventListener('click', () => {
+      markDirty();
+      const slot = currentLayout().slots[state.activeSlot];
+      const style = state.styles[slot.key];
+      if (element.dataset.format === 'bold') style.weight = style.weight === 'bold' ? 'normal' : 'bold';
+      if (element.dataset.format === 'italic') style.italic = !style.italic;
+      if (element.dataset.format === 'increase') style.fontSize = Math.min(28, style.fontSize + 1);
+      if (element.dataset.format === 'decrease') style.fontSize = Math.max(7, style.fontSize - 1);
+      renderApp();
+    });
+  });
+  document.querySelector('#data-input')?.addEventListener('input', (event) => {
+    state.rawInput = event.target.value;
+  });
+  document.querySelector('[data-action="load-sample"]')?.addEventListener('click', () => {
+    state.rawInput = sampleTSV;
+    renderApp();
+  });
+  document.querySelector('[data-action="next-step"]')?.addEventListener('click', () => {
+    const step = state.page;
+    if (step === 'data') updateData(document.querySelector('#data-input').value);
+    const next = wizardSteps[wizardSteps.indexOf(step) + 1];
+    if (next) selectPage(next);
+  });
+  document.querySelector('[data-action="download-pdf"]')?.addEventListener('click', downloadPdf);
+  document.querySelector('[data-action="show-warnings"]')?.addEventListener('click', () => {
+    state.warningOpen = !state.warningOpen;
+    renderApp();
+  });
+}
+
+return { renderApp, steps: wizardSteps };
+})();
+const wizardSteps = wizardView.steps;
+
 function fontForStyle(fonts, style) {
   if (style.weight === 'bold' && style.italic) return fonts.boldItalic;
   if (style.weight === 'bold') return fonts.bold;
@@ -784,8 +1080,9 @@ async function buildPdf() {
 
 window.addEventListener('hashchange', () => {
   const page = window.location.hash.replace('#', '');
-  if (['studio', 'guide', 'privacy'].includes(page) && page !== state.page) {
-    state.page = page;
+  const nextPage = page === 'studio' ? 'stock' : page;
+  if ([...wizardSteps, 'guide', 'privacy'].includes(nextPage) && nextPage !== state.page) {
+    state.page = nextPage;
     renderApp();
   }
 });
@@ -808,6 +1105,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 }
 
 const initialPage = window.location.hash.replace('#', '');
-if (['studio', 'guide', 'privacy'].includes(initialPage)) state.page = initialPage;
+const initialRoute = initialPage === 'studio' ? 'stock' : initialPage;
+if ([...wizardSteps, 'guide', 'privacy'].includes(initialRoute)) state.page = initialRoute;
 ensureLayoutState();
 renderApp();
