@@ -1,4 +1,4 @@
-const CACHE_NAME = 'label-studio-v1';
+const CACHE_NAME = 'label-studio-v2';
 const BASE_PATH = new URL('./', self.location).pathname;
 const APP_SHELL = [
   BASE_PATH,
@@ -31,18 +31,21 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
+  const isDocument = request.destination === 'document' || url.pathname === BASE_PATH || url.pathname.endsWith('/index.html');
+  if (isDocument) {
+    event.respondWith(
+      fetch(request).then((response) => {
+        if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+        return response;
+      }).catch(() => caches.match(request).then((cached) => cached || caches.match(`${BASE_PATH}index.html`))),
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => cached || fetch(request).then((response) => {
-      const cacheable = response.ok && (
-        ['document', 'script', 'style', 'font', 'image', 'manifest'].includes(request.destination)
-        || url.pathname === '/'
-        || url.pathname.endsWith('.html')
-        || url.pathname.endsWith('.webmanifest')
-      );
-      if (cacheable) {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-      }
+      const cacheable = response.ok && ['script', 'style', 'font', 'image', 'manifest'].includes(request.destination);
+      if (cacheable) caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
       return response;
     }).catch(() => caches.match(`${BASE_PATH}index.html`))),
   );
