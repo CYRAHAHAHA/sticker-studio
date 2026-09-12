@@ -236,7 +236,7 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -0.025em; }
 .control-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .control-card-heading strong { font-size: 15px; }
 .control-card-heading span { color: var(--muted); font-size: 13px; }
-.layout-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; max-height: min(38vh, 300px); overflow: auto; padding-right: 3px; }
+.layout-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; max-height: min(38vh, 300px); overflow-x: hidden; overflow-y: auto; padding-right: 3px; scrollbar-gutter: stable; }
 .layout-card {
   min-height: 84px;
   display: grid;
@@ -312,7 +312,7 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -0.025em; }
 .text-button, .footer-link, .warning-detail, .support-back { padding: 0; border: 0; background: transparent; color: var(--teal-deep); font-size: 13px; font-weight: 650; }
 .text-button:hover, .footer-link:hover, .warning-detail:hover, .support-back:hover { text-decoration: underline; }
 .data-actions span { color: var(--muted); font-size: 13px; }
-.data-table-wrap { overflow: auto; padding: 23px; }
+.data-table-wrap { overflow-x: auto; overflow-y: hidden; padding: 23px; }
 .table-meta { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 13px; color: var(--ink-soft); font-size: 14px; }
 .table-meta span { color: var(--muted); }
 .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -394,7 +394,7 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -0.025em; }
 }
 
 @media (max-width: 780px) {
-  .wizard-content { overflow: auto; }
+  .wizard-content { overflow-x: hidden; overflow-y: auto; }
   .step-layout { display: flex; flex-direction: column; gap: 16px; width: calc(100% - 28px); padding: 24px 0 22px; }
   .step-control { flex: 0 0 auto; overflow: visible; }
   .step-preview { flex: 1 1 auto; min-height: 310px; }
@@ -421,7 +421,7 @@ h2 { margin-bottom: 0; font-size: 18px; letter-spacing: -0.025em; }
   .preview-heading { padding: 16px; }
   .preview-heading h2 { font-size: 16px; }
   .preview-footer { flex-wrap: wrap; padding: 10px 15px; font-size: 12px; }
-  .layout-grid { grid-template-columns: 1fr; max-height: 250px; }
+  .layout-grid { grid-template-columns: 1fr; max-height: none; overflow: visible; padding-right: 0; }
   .layout-card { min-height: 74px; }
   .data-input { height: 185px; font-size: 12px; }
   .data-table-wrap { padding: 16px; }
